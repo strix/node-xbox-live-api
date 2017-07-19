@@ -30,7 +30,7 @@ xla.FetchPreAuthData = function(callback) {
       ppft_re = value;
     }
   });
-  
+
   if (!url_post || !ppft_re) {
     var post_vals = {
       client_id: '0000000048093EE3',
@@ -47,7 +47,7 @@ xla.FetchPreAuthData = function(callback) {
       method: 'GET',
       path: '/oauth20_authorize.srf?' + post_vals_qs,
     }
-    
+
     var xruReq = https.request(options, function(res) {
       var cookie = res.headers['set-cookie'];
       var cookies = '';
@@ -56,13 +56,13 @@ xla.FetchPreAuthData = function(callback) {
         a_cookie = cookie_parser.parse(cookie[i]);
         var keys = Object.keys(a_cookie);
         var desired_key = keys[0];
-        var desired_value = a_cookie[desired_key]; 
+        var desired_value = a_cookie[desired_key];
         cookies += desired_key + "=" + desired_value;
-        
+
         if (i < cookie.length - 1)
           cookies += "; ";
       }
-         
+
       xlaCache.set('cookie', cookies, 0, function(err, success) {
         if (err) {
           console.log("Failed to save the cookie");
@@ -75,11 +75,11 @@ xla.FetchPreAuthData = function(callback) {
       res.on('end', function () {
         url_post = str.match(/urlPost:'([A-Za-z0-9:\?_\-\.&\\/=]+)/)[1];
         ppft_re = str.match(/sFTTag:'.*value=\"(.*)\"\/>'/)[1];
-        
+
         xlaCache.set('url_post', url_post, 0, function(err,success) {
           if( !err && success ){
             //console.log('url_post cached');
-          } 
+          }
           else {
             console.log('cache set failed for url_post' );
           }
@@ -87,7 +87,7 @@ xla.FetchPreAuthData = function(callback) {
         xlaCache.set('ppft_re', ppft_re, 0, function(err,success) {
           if( !err && success ){
             //console.log('ppft_re cached');
-          } 
+          }
           else {
             console.log('cache set failed for ppft_re');
           }
@@ -106,8 +106,8 @@ xla.FetchPreAuthData = function(callback) {
   else {
     callback({url_post: url_post, ppft_re: ppft_re});
   }
-  
-  
+
+
 }
 
 xla.FetchInitialAccessToken = function(callback) {
@@ -116,7 +116,7 @@ xla.FetchInitialAccessToken = function(callback) {
   var ppft_re = null;
   var parsed_url_post = null;
   var cookie = null;
-  
+
   xlaCache.get("access_token", function(err, value) {
     if (!err && value) {
       access_token = value;
@@ -137,13 +137,13 @@ xla.FetchInitialAccessToken = function(callback) {
           if (i < cookie.length - 1)
             cookies += "; ";
         }
-    
+
         xlaCache.set('cookie', cookies, 0, function(err, success) {
           if (err) {
             console.log("Failed to save the cookie");
           }
         });
-        
+
         var str = '';
         response.on('data', function(chunk) {
           str += chunk;
@@ -153,16 +153,16 @@ xla.FetchInitialAccessToken = function(callback) {
           xlaCache.set('access_token', access_token, 0, function(err,success) {
             if( !err && success ) {
               //console.log('access_token cached');
-            } 
+            }
             else {
               console.log('cache set failed for access_token' );
             }
           });
-          
+
           callback(access_token);
         });
       };
-    
+
       var pre_auth_data = function (response) {
         var ppft_re = response['ppft_re'];
         var url_post = response['url_post'];
@@ -191,11 +191,11 @@ xla.FetchInitialAccessToken = function(callback) {
           'i12': '1',
           'i17': '0',
           'i18': '__Login_Host|1',
-          
+
         };
         var post_vals_qs = querystring.stringify(post_vals);
         parsed_url_post = url.parse(url_post);
-     
+
         var request_options = {
           host: 'login.live.com',
           path: parsed_url_post['path'],
@@ -215,7 +215,7 @@ xla.FetchInitialAccessToken = function(callback) {
           console.log(err);
         });
         access_token.end();
-      }  
+      }
       xla.FetchPreAuthData(pre_auth_data);
     };
   });
@@ -227,7 +227,7 @@ xla.Authenticate = function (callback) {
   var uhs = '';
   var notAfter = '';
   var cookie = '';
-  
+
   xlaCache.get('token', function(token_err, token_value) {
     if (!token_err && token_value) {
       xlaCache.get('uhs', function(uhs_err, uhs_value) {
@@ -237,7 +237,7 @@ xla.Authenticate = function (callback) {
               callback(token_value, uhs_value, notAfter_value);
             }
           });
-          
+
         }
       });
     }
@@ -250,7 +250,7 @@ xla.Authenticate = function (callback) {
 
           cookie = value;
         });
-        
+
         var payload = {
           'RelyingParty': 'http://auth.xboxlive.com',
           'TokenType': 'JWT',
@@ -260,7 +260,7 @@ xla.Authenticate = function (callback) {
             'RpsTicket': access_token,
           }
         };
-        
+
         var request_options = {
           hostname: 'user.auth.xboxlive.com',
           method: 'POST',
@@ -272,10 +272,10 @@ xla.Authenticate = function (callback) {
             'Content-Length': Buffer.byteLength(JSON.stringify(payload),'utf8'),
           }
         }
-        
+
         var authentication = https.request(request_options, function(response) {
           if (response.statusCode != '200') console.log("Authentication XBL statusCode: ", response.statusCode);
-          
+
           var str = '';
           response.on('data', function(chunk) {
             str += chunk;
@@ -304,7 +304,7 @@ xla.Authenticate = function (callback) {
             callback(token, uhs, notAfter);
           });
         });
-      
+
         authentication.write(JSON.stringify(payload));
         authentication.on('socket', function (socket) {
           socket.setTimeout(12000);
@@ -313,7 +313,7 @@ xla.Authenticate = function (callback) {
           console.log(err);
         });
         authentication.end();
-        
+
       });
     };
   });
@@ -342,7 +342,7 @@ xla.GetAuthorization = function(callback) {
     }
     else {
       xla.Authenticate(function(token, uhs, notAfter) {
-        
+
         xlaCache.get('cookie', function(err, value) {
           if (err) {
             console.log("Failed to get cookie from cache, this shouldn't happen");
@@ -350,7 +350,7 @@ xla.GetAuthorization = function(callback) {
 
           cookie = value;
         });
-      
+
         var payload = {
           RelyingParty: 'http://xboxlive.com',
           TokenType: 'JWT',
@@ -359,7 +359,7 @@ xla.GetAuthorization = function(callback) {
             SandboxId: 'RETAIL',
           }
         };
-        
+
         var request_options = {
           hostname: 'xsts.auth.xboxlive.com',
           path: '/xsts/authorize',
@@ -371,11 +371,11 @@ xla.GetAuthorization = function(callback) {
             'Content-Length': Buffer.byteLength(JSON.stringify(payload),'utf8'),
           },
         };
-        
+
         var authorization = https.request(request_options, function(response) {
-          
+
           if (response.statusCode != '200') console.log("Authorization XBL statusCode: ", response.statusCode);
-        
+
           var str = '';
           response.on('data', function(chunk) {
             str += chunk;
@@ -391,7 +391,7 @@ xla.GetAuthorization = function(callback) {
             notAfter = str.NotAfter;
             token = str.Token;
             authorizationHeader = 'XBL3.0 x=' + uhs + ';' + token;
-            
+
             xlaCache.set('notAfter', notAfter, 0, function (err, success) {
               if (err)
                 console.log("Failed to cache notAfter value");
@@ -403,7 +403,7 @@ xla.GetAuthorization = function(callback) {
             callback(authorizationHeader);
           });
         });
-        
+
         authorization.write(JSON.stringify(payload));
         authorization.on('socket', function (socket) {
           socket.setTimeout(12000);
@@ -415,7 +415,7 @@ xla.GetAuthorization = function(callback) {
       });
     }
   });
-  
+
 }
 
 /*
@@ -432,7 +432,7 @@ xla.GetXuid = function(gamertag, callback) {
     else {
       var host = 'profile.xboxlive.com';
       var uri = '/users/gt(' + encodeURIComponent(gamertag) + ')/profile/settings';
-      
+
       xla.request(host, uri, function(str) {
         if (!str.profileUsers || !str.profileUsers.length) str.profileUsers = [{id: -1}];
         xlaCache.set('xuidForGamertag-' + gamertag, str.profileUsers[0].id, 0, function(err, success) {
@@ -462,7 +462,7 @@ xla.GetClipsForGamer = function(gamertag, titleid, continueToken, callback) {
 
     var host = 'gameclipsmetadata.xboxlive.com';
     var uri = '/users/xuid(' + xuid + ')/clips?maxItems=200';
-    
+
     xla.request(host, uri, function(data) {
       callback(data);
     });
@@ -573,5 +573,14 @@ xla.request = function(host, uri, callback) {
       console.log(err);
     });
     requestResults.end();
+  });
+}
+
+xla.getCacheVariable = function(variableName, callback) {
+  xlaCache.get(variableName, function(err, value) {
+    if (err) {
+      return null;
+    }
+    callback(value);
   });
 }
